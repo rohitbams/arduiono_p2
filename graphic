@@ -1,0 +1,60 @@
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET    -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  Serial.println(F("SSD1306 allocation failed"));
+  // Don't proceed, but don't freeze
+}
+display.clearDisplay();
+display.setTextSize(1);
+display.setTextColor(SSD1306_WHITE);
+display.display();
+
+// Array to store recent values for graphing
+#define GRAPH_WIDTH 128
+int graphValues[GRAPH_WIDTH];
+int graphIndex = 0;
+
+void updateGraph(unsigned long value) {
+  // Map value to display height
+  int displayValue = map(value, 0, 10000, 0, SCREEN_HEIGHT-10);
+  
+  // Store in circular buffer
+  graphValues[graphIndex] = displayValue;
+  graphIndex = (graphIndex + 1) % GRAPH_WIDTH;
+  
+  // Draw the graph
+  display.clearDisplay();
+  
+  // Draw axes
+  display.drawLine(0, SCREEN_HEIGHT-1, SCREEN_WIDTH-1, SCREEN_HEIGHT-1, SSD1306_WHITE);
+  display.drawLine(0, 0, 0, SCREEN_HEIGHT-1, SSD1306_WHITE);
+  
+  // Draw the signal
+  for (int i = 0; i < GRAPH_WIDTH-1; i++) {
+    int x1 = i;
+    int y1 = SCREEN_HEIGHT - 1 - graphValues[(graphIndex + i) % GRAPH_WIDTH];
+    int x2 = i + 1;
+    int y2 = SCREEN_HEIGHT - 1 - graphValues[(graphIndex + i + 1) % GRAPH_WIDTH];
+    
+    display.drawLine(x1, y1, x2, y2, SSD1306_WHITE);
+  }
+  
+  // Add text for value
+  display.setCursor(0, 0);
+  display.print("Value: ");
+  display.println(value);
+  
+  display.display();
+}
+
+
+
+// In your analyzeSample() function, after calculating delta, call:
+updateGraph(delta);
